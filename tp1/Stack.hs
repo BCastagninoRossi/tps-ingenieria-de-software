@@ -21,6 +21,10 @@ netS :: Stack -> Int                      -- responde el peso neto de los palete
 netS (Sta palets _) = sum $ map netP palets
 
 holdsS :: Stack -> Palet -> Route -> Bool -- indica si la pila puede aceptar el palet considerando las ciudades en la ruta
-
+holdsS (Sta [] _) _ _ = True  -- Empty stack can accept any pallet
+holdsS (Sta (topPalet : _) _) palet route =
+    inOrderR route (destinationP palet) (destinationP topPalet)
 
 popS :: Stack -> String -> Stack          -- quita del tope los paletes con destino en la ciudad indicada
+popS (Sta palets capacity) destino =
+    Sta (dropWhile (\p -> destinationP p == destino) palets) capacity
