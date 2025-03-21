@@ -1,7 +1,8 @@
 Delivery
 
 modelamos el camion de una compañia de transporte de materiales de construccion en palets
-El camion tiene una ruta establecida y una cantidad de bahias para estiba.
+El camion tiene una ruta establecida y una cantidad de bahias para estiba. 
+--Recibe una Route y un N int?
 Todas las bahias de un camión toleran la misma cantidad de palets apilados.
 
 Al momento de llegar a uno de los destinos de su ruta tiene que poder descargar los palets con ese destino simplemente desapilando.
