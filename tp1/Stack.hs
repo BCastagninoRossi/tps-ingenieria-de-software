@@ -4,27 +4,36 @@ module Stack ( Stack, newS, freeCellsS, stackS, netS, holdsS, popS )
 import Palet
 import Route
 
+
 data Stack = Sta [ Palet ] Int deriving (Eq, Show)
 
-newS :: Int -> Stack                      -- construye una Pila con la capacidad indicada (cantidad de pallets maxima)
-newS capacity = Sta [] capacity
+newS :: Int -> Stack  -- construye una Pila con la capacidad indicada
+newS capacity | capacity <= 0 = error "Stack capacity must be greater than 0"
+              | otherwise = Sta [] capacity
 
-freeCellsS :: Stack -> Int                -- responde la celdas disponibles en la pila (cantidad de pallets que puede admitir)
+freeCellsS :: Stack -> Int  -- responde las celdas disponibles en la pila
 freeCellsS (Sta palets capacity) = capacity - length palets
 
-stackS :: Stack -> Palet -> Stack         -- apila el palet indicado en la pila 
-stackS (Sta palets capacity) palet
-    | length palets < capacity = Sta (palet : palets) capacity
-    | otherwise = error "Stack is full"
 
-netS :: Stack -> Int                      -- responde el peso neto de los paletes en la pila (no hay limite)
-netS (Sta palets _) = sum $ map netP palets
+netS :: Stack -> Int  -- responde el peso neto de los palets en la pila
+netS (Sta palets capacity) | palets == [] = 0
+                           | otherwise = sum (map netP palets)
 
-holdsS :: Stack -> Palet -> Route -> Bool -- indica si la pila puede aceptar el palet considerando las ciudades en la ruta
-holdsS (Sta [] _) _ _ = True  -- Empty stack can accept any pallet
-holdsS (Sta (topPalet : _) _) palet route =
-    inOrderR route (destinationP palet) (destinationP topPalet)
+stackS :: Stack -> Palet -> Stack  -- apila el palet indicado en la pila. siempre llamar a holdsS antes
+stackS (Sta palets capacity) palet = Sta (palet : palets) capacity
+                                   
 
-popS :: Stack -> String -> Stack          -- quita del tope los paletes con destino en la ciudad indicada
-popS (Sta palets capacity) destino =
-    Sta (dropWhile (\p -> destinationP p == destino) palets) capacity
+
+
+holdsS :: Stack -> Palet -> Route -> Bool  -- indica si la pila puede aceptar el palet considerando las ciudades en la ruta
+holdsS (Sta [] _) _ _ = True
+holdsS (Sta palets capacity) palet route =
+    freeCellsS (Sta palets capacity) > 0 &&
+    netS (Sta palets capacity) + netP palet <= 10 &&
+    foldr (\p acc -> inOrderR route (destinationP p) (destinationP palet) && acc) True palets
+
+
+popS :: Stack -> String -> Stack  -- quita los palets con destino en la ciudad indicada (solo si están en la parte de arriba de la pila)
+popS (Sta [] capacity) _ = Sta [] capacity
+popS (Sta (topPallet:pallets) capacity) destino | destinationP topPallet == destino = popS (Sta pallets capacity) destino
+                                                | otherwise = Sta (topPallet:pallets) capacity

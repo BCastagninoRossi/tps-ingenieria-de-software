@@ -5,7 +5,7 @@ data Route = Rou [ String ] deriving (Eq, Show)
 
 
 newR :: [ String ] -> Route -- construye una ruta según una lista de ciudades
-newR = Rou
+newR ciudades = Rou ciudades
 
 inOrderR :: Route -> String -> String -> Bool -- indica si la primer ciudad consultada está antes que la segunda ciudad en la ruta
 inOrderR (Rou ciudades) ciudad1 ciudad2 =
