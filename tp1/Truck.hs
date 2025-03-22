@@ -20,15 +20,11 @@ loadT :: Truck -> Palet -> Truck
 loadT (Tru stacks route) palet  | freeCellsT (Tru stacks route) == 0 = error "No free cells available in the truck"
                                 | not (inRouteR route (destinationP palet)) = error "Destination city not in route"
                                 | otherwise =
-                                    let newStacks = foldr 
-                                            (\stack acc ->
-                                                if holdsS stack palet route
-                                                then stackS stack palet : acc  
-                                                else stack : acc               
-                                            ) [] stacks
-                                    in if newStacks == stacks
+                                    let availableIndices = foldr (\(i, stack) acc -> if holdsS stack palet route then i : acc else acc) [] (zip [0..] stacks)
+                                    in if availableIndices == []
                                         then error "No suitable stack found to load the pallet"
-                                        else Tru newStacks route
+                                    else let newStacks = foldr (\(i, stack) acc -> if i == head availableIndices then stackS stack palet : acc else stack : acc) [] (zip [0..] stacks)
+                                        in Tru newStacks route
 
 unloadT :: Truck -> String -> Truck   -- responde un camion al que se le han descargado los paletes que podían descargarse en la ciudad
 unloadT (Tru stacks route) destino = Tru (foldr (\stack acc -> popS stack destino : acc) [] stacks) route
