@@ -16,50 +16,42 @@ testF action = unsafePerformIO $ do
     isException :: SomeException -> Maybe ()
     isException _ = Just ()
 
--- Variables para pruebas simples (no-excepción)
-route = newR ["CityA", "CityB", "CityC"]
+
+route = newR ["Rosario", "La Boca", "Chubut"]
 truck = newT 2 5 route
-palet1 = newP "CityA" 3
-palet2 = newP "CityB" 4
-palet3 = newP "CityC" 2
+palet1 = newP "Rosario" 3
+palet2 = newP "La Boca" 4
+palet3 = newP "Chubut" 2
 stack = newS 5
-palets = [newP "CityA" 3, newP "CityB" 4, newP "CityC" 2]
+palets = [newP "Rosario" 3, newP "La Boca" 4, newP "Chubut" 2]
 
--- Variables para demostrar comportamiento con error
--- Se testearán con testF
--- No se definen directamente para no romper la ejecución,
--- sino que se usan dentro de testF.
-
--- Comparación de resultados (no usa testF)
-testPalet1 = destinationP palet1 == "CityA"
+testPalet1 = destinationP palet1 == "Rosario"
 testPalet2 = netP palet1 == 3
-testRoute1 = inOrderR route "CityA" "CityB"
-testRoute2 = inRouteR route "CityA"
+testRoute1 = inOrderR route "Rosario" "La Boca"
+testRoute2 = inRouteR route "Rosario"
 testStack1 = freeCellsS stack == 5
 testStack2 = netS stack == 0
 testStack3 = holdsS stack palet1 route == True
 testTruck1 = freeCellsT truck == 10
 testTruck2 = netT truck == 0
 testTruck3 = freeCellsT (loadT truck palet1) == 9 && netT (loadT truck palet1) == 3
+testHoldsTrue  = holdsS (stackS (newS 2) (newP "Chubut" 9)) (newP "Chubut" 1) route == True
+testHoldsFalse = holdsS (stackS (newS 2) (newP "Chubut" 10)) (newP "Chubut" 1) route == False
+testStackPop = freeCellsS (popS (stackS stack palet1) "Rosario") == 5
+testTruck4 = freeCellsT (unloadT (loadT truck palet1) "Rosario") == 10
 
--- Ejemplo de popS y unloadT con resultados esperados
-testStackPop = freeCellsS (popS (stackS stack palet1) "CityA") == 5
-testTruck4 = freeCellsT (unloadT (loadT truck palet1) "CityA") == 10
+testNewPEx1 = testF (newP "Cordoba" 0)
+testNewTEx1 = testF (newT 0 5 route)
+testNewTEx2 = testF (newT 2 0 route)        
+testLoadTEx1 = testF (loadT truck (newP "Posadas" 3)) 
+testStackEx1 = testF (newS 0)
+testNoFreeCellsEx = testF (loadT (loadT (newT 1 1 route) palet1) palet1) 
 
--- Sección con testF para verificar lanzamiento de excepciones
-testNewPEx1 = testF (newP "CityD" 0)        -- peso <= 0
-testNewTEx1 = testF (newT 0 5 route)        -- numBays <= 0
-testNewTEx2 = testF (newT 2 0 route)        -- capacity <= 0
-testLoadTEx1 = testF (loadT truck (newP "CityX" 3)) -- ciudad no en ruta
-testStackEx1 = testF (newS 0)               -- pila con capacidad <= 0
-testHoldsEx1 = testF (loadT truck (newP "CityC" 11)) -- net total > 10 en una pila
 
--- Función para mostrar esperado vs. actual
 printTest :: String -> Bool -> Bool -> IO ()
 printTest name expected actual =
   putStrLn $ name ++ " | Expected: " ++ show expected ++ " | Actual: " ++ show actual
 
--- Listado de tests sin uso de testF (no excepciones)
 nonExceptionTests :: [(String, Bool, Bool)]
 nonExceptionTests =
   [ ("testPalet1", True, testPalet1)
@@ -74,9 +66,10 @@ nonExceptionTests =
   , ("testTruck2", True, testTruck2)
   , ("testTruck3", True, testTruck3)
   , ("testTruck4", True, testTruck4)
+  , ("testHoldsTrue", True, testHoldsTrue)
+  , ("testHoldsFalse", True, testHoldsFalse)
   ]
 
--- Listado de tests que usan testF (excepciones)
 exceptionTests :: [(String, Bool, Bool)]
 exceptionTests =
   [ ("testNewPEx1 (peso <=0)", True, testNewPEx1)
@@ -84,14 +77,13 @@ exceptionTests =
   , ("testNewTEx2 (capacity<=0)", True, testNewTEx2)
   , ("testLoadTEx1 (ciudad no en ruta)", True, testLoadTEx1)
   , ("testStackEx1 (capacity <=0)", True, testStackEx1)
-  , ("testHoldsEx1 (net>10)", True, testHoldsEx1)
+  , ("testNoFreeCellsEx (no hay celdas libres)", True, testNoFreeCellsEx)
   ]
 
--- Función para correr todos los tests (no se usa 'main')
 runAllTests :: IO ()
 runAllTests = do
   putStrLn "===== Tests Sin Excepción ====="
   mapM_ (\(n, e, a) -> printTest n e a) nonExceptionTests
   
-  putStrLn "\n===== Tests Con Excepción (usando testF) ====="
+  putStrLn "\n===== Tests Con Excepción ====="
   mapM_ (\(n, e, a) -> printTest n e a) exceptionTests
