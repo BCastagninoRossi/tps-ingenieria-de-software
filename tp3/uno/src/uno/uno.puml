@@ -1,0 +1,188 @@
+@startuml
+' Título
+title UNO - Diagrama de Clases Actualizado
+
+' Excepciones
+abstract class UnoGameException {
+    +UnoGameException(String message)
+}
+
+class CardDoesNotMatchException {
+    -Card attemptedCard
+    -Card topCard
+    +CardDoesNotMatchException(Card, Card)
+    +Card getAttemptedCard()
+    +Card getTopCard()
+}
+
+class PlayerDoesNotHaveCardException {
+    -Player player
+    -Card card
+    +PlayerDoesNotHaveCardException(Player, Card)
+    +Player getPlayer()
+    +Card getCard()
+}
+
+UnoGameException <|-- CardDoesNotMatchException
+UnoGameException <|-- PlayerDoesNotHaveCardException
+
+' Interfaz y Clases de Estado para Dirección
+interface PlayDirectionState {
+    +void advancePlayerTurn(Deque<Player> playersQueue)
+    +Player getNextPlayer(Deque<Player> playersQueue, Player currentPlayer)
+    +PlayDirectionState reverseDirection()
+}
+class ForwardDirectionState implements PlayDirectionState
+class BackwardDirectionState implements PlayDirectionState
+
+' Estado del juego
+abstract class GameState {
+    +{abstract} void playCard(UnoGame game, String playerName, Card card)
+    +{abstract} String getWinner()
+}
+
+class InProgressState extends GameState {
+    +void playCard(UnoGame game, String playerName, Card card)
+    +String getWinner()
+}
+
+class FinishedState extends GameState {
+    -String winnerName
+    +FinishedState(String winnerName)
+    +void playCard(UnoGame game, String playerName, Card card)
+    +String getWinner()
+}
+
+' Interfaz para colores de carta
+interface CardColor {
+    +String getValue()
+}
+
+class NoColor implements CardColor {
+    -static NoColor INSTANCE
+    -NoColor()
+    +static NoColor getInstance()
+    +String getValue()
+}
+
+class ConcreteColor implements CardColor {
+    -String colorValue
+    +ConcreteColor(String)
+    +String getValue()
+}
+
+' Clases de cartas
+abstract class Card {
+    +String color()
+    +boolean matches(Card other)
+    +boolean canBePlayedUponBy(Card playingCard)
+    +boolean matchesSpecific(NumberCard topNumberCard)
+    +boolean matchesSpecific(DrawTwoCard topDrawTwoCard)
+    +boolean matchesSpecific(ReverseCard topReverseCard)
+    +boolean matchesSpecific(SkipCard topSkipCard)
+    +boolean matchesSpecific(WildCard topWildCard)
+    +void applyEffect(UnoGame game)
+    +boolean avanzaTurno()
+    +void play(UnoGame game, Player player)
+}
+
+class NumberCard {
+    -String color
+    -int number
+    +color()
+    +number()
+}
+
+class DrawTwoCard {
+    -String color
+    +color()
+}
+
+class ReverseCard {
+    -String color
+    +color()
+}
+
+class SkipCard {
+    -String color
+    +color()
+}
+
+class WildCard {
+    -CardColor chosenColor
+    +WildCard()
+    +WildCard(String)
+    +color()
+    +chooseColor(String)
+}
+
+' Relación de herencia
+Card <|-- NumberCard
+Card <|-- DrawTwoCard
+Card <|-- ReverseCard
+Card <|-- SkipCard
+Card <|-- WildCard
+
+' Clase Player
+class Player {
+    -String name
+    -List<Card> hand
+    -boolean unoDeclared
+    +name()
+    +hand()
+    +receiveCard(Card)
+    +setHand(List<Card>)
+    +giveOneCard(Card)
+    +playCard(Card, UnoGame)
+    +hasNoCards()
+    +void declareUno()
+    +boolean hasDeclaredUno()
+    +void resetUnoDeclaration()
+}
+
+' Clase principal del juego
+class UnoGame {
+    -Deque<Player> playersQueue
+    -Card topCard
+    -PlayDirectionState directionState
+    -GameState gameState
+    +static UnoGame withPlayers(String...)
+    +int playerCount()
+    +List<Card> handOf(String)
+    +Card topCard()
+    +String currentPlayerName()
+    +Player currentPlayer()
+    +void playCard(String, Card)
+    +void playerDeclaresUno(String)
+    +void setHand(String, List<Card>)
+    +void givePlayerOneCard(String, Card)
+    +void setTopCard(Card)
+    +void forceTopCard(Card)
+    +String nextPlayerAfter(String)
+    +String winner()
+    +void drawTwoEffect()
+    +void reverseEffect()
+    +void skipEffect()
+    -void playCardInternal(String, Card)
+    -String checkWinner()
+}
+
+' Relaciones
+UnoGame o-- Player : playersQueue
+Player o-- Card : hand
+UnoGame o-- Card : topCard
+UnoGame o-- PlayDirectionState : directionState
+UnoGame o-- GameState : gameState
+PlayDirectionState <.. UnoGame : (usa)
+GameState <.. UnoGame : (usa)
+WildCard *-- CardColor : chosenColor
+
+UnoGame *-- GameState : inner class
+UnoGame *-- InProgressState : inner class
+UnoGame *-- FinishedState : inner class
+
+UnoGame ..> Card : usa
+UnoGame ..> Player : coordina
+Player ..> UnoGameException : lanza
+
+@enduml
