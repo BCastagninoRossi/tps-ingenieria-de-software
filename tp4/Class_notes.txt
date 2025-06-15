@@ -1,0 +1,83 @@
+Spring es una cosa que te maneja las instancias de clases. Maneja cuándo se crean y destruyen. Lo que vamos a querer al crear una app es que spring nos maneje las cosas.
+
+El @Autowired se usa para crear una instancia administrada por spring.
+El @MockBean se usa para crear una instancia administrada por spring pero que permite modificar el comportamiento de la instancia. Se usa en tests y solo en tests.
+
+Más en concreto, no vamos a querer hacer Clase objeto1 = new Clase();
+En cambio, vamos a hacer @Autowired Clase objeto2.
+
+objeto1 es una instancia
+objeto2 es una instancia administrada. Spring va a manejar su existencia
+
+Es clave definir, para cada clase del modelo, qué es esencial y qué no. Qué es comportamiento o atributos intrínsecos de la clase y qué no. Lo que es esencial, queremos dejarlo “normal”. Lo que no es esencial, vamos a querer que lo maneje spring.
+
+Por ejemplo, en el modelo del Uno, el color de una carta es algo esencial de la carta. La carta no debería tener que preguntarle a otra cosa “¿de qué color soy yo?”.
+
+En concreto, digamos que tenemos una clase A que usa dentro de su funcionalidad a un objeto, que no es esencial, de la clase B. Entonces, vamos a dejar al objeto de la clase B como @Autowired private B objetoB. Y esto significa que cuando creemos una instancia de la clase A usando @Autowired A objetoA, spring se encargará de crear y proveernos la instancia objetoB. Esto es mejor que sacar al objetoB de la clase y pasarlo como parámetro. Además, hacer esto deja claro dentro de la clase qué es lo esencial y cuáles son los servicios que consumimos.
+
+Pero para poder hacer @Autowired de una clase, necesitamos flaggear esa clase como un @Service o un @Component. En el ejemplo anterior, tanto la clase A como la clase B deben ser @Service o @Component. Si no, no podríamos crear instancias de ellas con @Autowired.
+
+@MockBean permite … completar
+
+IMPORTANTE:
+
+Es muy importante discernir entre objetos stateful y objetos stateless. Un objeto stateful es aquel que almacena variables dentro suyo que son esenciales para él. Por ejemplo, una carta del uno es stateful. Tiene un color, el cual es esencial. Un objeto stateless no almacena ninguna variable esencial. Solamente define comportamiento o interactúa con otros objetos/variables que no le son esenciales. Por ejemplo, el cashier del tp4 es stateless. Tiene un clock, por ejemplo, pero ese clock no le es esencial. Le podríamos pasar cualquier instancia de clock y sería lo mismo.
+
+¿Por qué nos interesa diferenciar entre stateful y stateless?
+
+Porque vamos a definir las clases stateful y stateless de distintas maneras. Las clases stateless no van a tener constructor, y todos los objetos que usen van a estar manejados por spring con @Autowired. Las clases stateful van a estar definidas como siempre lo hicimos. Con constructor que recibe como parámetro las cosas que usa la clase.
+
+Comentario aparte: no está bueno implementar un método que se va a utilizar únicamente en los tests y no en la aplicación real. Por ejemplo el reset() de systemFacade. El reset borra todo el historial de transacciones, y la idea detrás de implementarlo es llamarlo al principio de cada test para que se arranque desde una cuenta limpia y el test sea más determinístico (si no no sé qué venía antes). Pero justamente esta idea es errónea, porque es más realista testear una cuenta que ya tiene transacciones que una vacía. Además es muy desprolijo hacer un método porque me sirve para testear y solo para testear. No es parte del comportamiento que quiero modelar de la clase.
+
+Tampoco está bueno destruir una instancia de systemFacade y construirla nuevamente para cada test, porque es caro. Aunque en algunos casos se hace.
+
+La solución en el caso del reset de systemFacade() fue siempre hacer un assertEquals() de la última transacción y no de la primera. De esta forma, no me importa qué vino antes en el historial de transacciones, y no me hace falta hacer ningún reset y destruir y crear nuevas instancias.
+
+TP 4
+
+Importante: no hay que usar nuestro TP del Uno para hacer el TP 4. Se nos provee una implementación en el mail.
+
+Comandos curl a utilizar (estos son ejemplos):
+
+Crear una partida:
+
+curl -X POST "http://localhost:8080/newmatch?players=A&players=B" -H "Accept: application/json"
+
+Devuelve el ID de la partida, llamado uuid.
+Observación: la función es /newmatch y los parámetros son players=A y players=B
+
+Jugar una carta:
+
+curl -X POST "http://localhost:8080/play/6951e08e-3594-49ec-95a3-056382cea112/A" \
+   -H "Content-Type: application/json" \ 
+  -d '{"color":"Blue","number":6,"type":"NumberCard","shout":false}'
+
+Estructura: play es la función, el choclo de hexa es el id de la partida, A es el nombre del jugador y el JSON es la carta a jugar.
+
+No devuelve nada
+
+Tomar una carta del mazo
+
+curl -X POST "http://localhost:8080/draw/6951e08e-3594-49ec-95a3-056382cea112/B”
+
+Estructura: el choclo es el ID de la partida y la B es el nombre del jugador
+
+Hay más comandos, están en el mail del tp
+
+
+En el tp4 hay 3 capas:
+
+El modelo (toda la lógica del juego, las jerarquías, el backend básicamente)
+El servicio → Le provee a la interfaz las funciones del modelo y maneja las instancias de partidas (porque puede haber muchas partidas en curso a la vez)
+La Interfaz Rest
+
+Cosas que hacer/no hacer
+
+No usar lombok. Lombok no permite ver la estructura de los constructores y cuando cada uno se debe usar. No podemos ver qué atributos tienen que ser definidos en la creación del objeto y cuáles serán definidos después por setters
+Cuando queremos conectar nuestra aplicación con una base de datos, marcar un atributo de la clase (puede ser un int, un string, etc) como ID. De esta forma podremos identificar distintas instancias de una clase en la base de datos aunque tengan los mismos valores en sus atributos (el valor del ID siempre será único).
+
+Idealmente los tests son una descripción del modelo. Vos tenés que poder leer los tests y entender cómo funciona el modelo y qué servicios ofrece.
+
+El jugador habla con la interfaz (API), la interfaz habla con el controller y el controller habla con el servicio (modelo).
+
+La clase Card vive únicamente dentro del modelo. Cuando un usuario se comunica con la API, no nos va a enviar una Card. Porque Card no existe fuera del backend. Nos va a enviar un JSON con la información de la carta. Nosotros tenemos que parsear ese JSON y convertirlo en una Card para usarlo en nuestro backend. A estos JSONs los llamamos DTOs (Data Transfer Objects), porque cumplen el rol de transferir información desde la API hasta el modelo. 
